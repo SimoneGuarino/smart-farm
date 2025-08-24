@@ -10,6 +10,7 @@ import { Tooltip } from 'react-tooltip';
 import { MdOutlineDashboard } from "react-icons/md";
 import { PiFarm } from "react-icons/pi";
 import { MdOutlineAnalytics } from "react-icons/md";
+import { useEffect } from 'react';
 
 const DashboardIcon = MdOutlineDashboard as React.FC<{ size?: number }>;
 const Campo3DIcon = PiFarm as React.FC<{ size?: number }>;
@@ -17,16 +18,19 @@ const AnalyticsIcon = MdOutlineAnalytics as React.FC<{ size?: number }>;
 
 
 const LinkItem = ({ to, label, icon }: { to: string; label: string; icon: React.ReactNode }) => {
-    const { isOpen } = useSidebarStore();
+    const { isOpen, closeSidebar } = useSidebarStore();
+    const { isMobile } = useResponsiveSidebar();
+
+    useEffect(() => console.log("isOpen", isOpen), [isOpen])
 
     return (
-        <NavLink to={to} className={({ isActive }) =>
+        <NavLink to={to} onClick={() => isMobile && closeSidebar()} className={({ isActive }) =>
             `flex gap-2 py-2 ${isOpen ? 'px-8' : 'px-4' } 
             text-gray-800 dark:text-gray-200
             w-full transition ${isActive ? 'bg-neutral-100 text-sky-600' : 'hover:bg-slate-100'}`
         }>
             {icon}
-            {!isOpen &&label}
+            {isMobile ? label : !isOpen && label}
         </NavLink>
     );
 }
@@ -35,7 +39,7 @@ const LinkItem = ({ to, label, icon }: { to: string; label: string; icon: React.
 export default function Sidebar() {
     const { isMobile } = useResponsiveSidebar(); // 👈 ora abbiamo isMobile
     const { isOpen, closeSidebar } = useSidebarStore();
-    const { isDarkMode, toggleDarkMode } = useDarkModeStore();
+    const { isDarkMode } = useDarkModeStore();
 
     // hover/scrollbar show-hide
     const [navIsFocused, setNavIsFocused] = useState(false);
@@ -60,7 +64,7 @@ export default function Sidebar() {
 
     return (<>
         {/* Backdrop mobile */}
-        {isMobile && !isOpen && (
+        {isMobile && isOpen && (
             <div
                 onClick={() => closeSidebar()}
                 className="fixed inset-0 z-10 bg-black/40 backdrop-blur-[1px]"

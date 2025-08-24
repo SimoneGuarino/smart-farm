@@ -26,7 +26,7 @@ export default function SidebarContainer({
                 isMobile
                     ? clsx(
                         "transition-transform duration-200 ease-in-out",
-                        !open ? "translate-x-0" : "-translate-x-full"
+                        open ? "translate-x-0" : "-translate-x-full"
                     )
                     : "transition-[width,background-color] duration-200 ease-in-out",
                 className

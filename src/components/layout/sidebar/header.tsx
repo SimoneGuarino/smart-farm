@@ -6,6 +6,7 @@ import { BsLayoutSidebar } from "react-icons/bs";
 import logo from "@/assets/logo.png";
 import IconButton from "@/components/ui/buttons/IconButton";
 import { useSidebarStore } from "@/hooks/controller";
+import { useResponsiveSidebar } from "./useResponsiveSidebar";
 
 const SidebarIcon = BsLayoutSidebar as React.FC<{ size?: number }>;
 
@@ -16,6 +17,7 @@ interface SideNavHeaderProps {
 
 export const SideNavHeader: React.FC<SideNavHeaderProps> = ({ navIsFocused }) => {
     const { isOpen, toggleSidebar } = useSidebarStore();
+    const { isMobile } = useResponsiveSidebar();
 
     const btn = (className?: string) => (
         <IconButton
@@ -33,7 +35,7 @@ export const SideNavHeader: React.FC<SideNavHeaderProps> = ({ navIsFocused }) =>
         <>
             <div className={`flex items-center gap-2 w-full ${isOpen && 'justify-center'}`}>
                 <img src={logo} alt="Logo" className={`w-full max-w-[40px] select-none`} />
-                {!isOpen &&<p className={`text-lg font-semibold`}>AgriSense</p>}
+                {isMobile ? <p className={`text-lg font-semibold`}>AgriSense</p> : !isOpen && <p className={`text-lg font-semibold`}>AgriSense</p>}
             </div>
             {!isOpen && btn()}
         </>}

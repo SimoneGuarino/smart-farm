@@ -49,7 +49,7 @@ export function buildMockSensors(): Sensor[] {
 }
 
 // simulatore push
-export function startMockFeed(push: (id: string, s: Sample) => void) {
+export function startMockFeed(sensors: Sensor[], push: (id: string, s: Sample) => void) {
     const state: Record<string, number> = {
         'PH_INLINE': 5.4,
         'EC_INLINE': 1.1,
@@ -57,6 +57,9 @@ export function startMockFeed(push: (id: string, s: Sample) => void) {
         'P_PRE': 2.0,
         'P_POST': 1.8,
     }
+
+    // calcoliamo una volta sola gli id VWC
+    const vwcIds = sensors.filter(s => s.kind === 'VWC').map(s => s.id)
 
     setInterval(() => {
         const t = Date.now()
@@ -81,7 +84,6 @@ export function startMockFeed(push: (id: string, s: Sample) => void) {
         })
 
         // VWC per ciascuna sonda
-        const vwcIds = buildMockSensors().filter(s => s.kind === 'VWC').map(s => s.id)
         vwcIds.forEach((id, idx) => {
             // profilo: oscillazioni strette 22-30% con micro noise
             const base = 26 + Math.sin((t / 1000 + idx) % 360) * 2
@@ -92,8 +94,8 @@ export function startMockFeed(push: (id: string, s: Sample) => void) {
             // EC drenaggio
             ;['ECDRAIN_A', 'ECDRAIN_E'].forEach((id) => publish(id, randBetween(0.3, 1.2)))
 
-        // T suolo
-        publish('T_SOIL_CENTRO', randBetween(12, 29))
+            // T suolo
+            publish('T_SOIL_CENTRO', randBetween(12, 29))
 
             // Leaf wetness
             ;['LWS_1', 'LWS_2'].forEach((id) => publish(id, Math.random() > 0.98 ? randBetween(0.7, 1) : randBetween(0, 0.2)))

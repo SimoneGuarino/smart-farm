@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Sensor, Sample } from '@/types/sensors'
 import { buildMockSensors, startMockFeed } from '@/data/mock'
 
+export const BASE_SENSORS: Sensor[] = buildMockSensors()
 
 interface SensorsState {
     sensors: Sensor[]
@@ -11,7 +12,7 @@ interface SensorsState {
 
 
 export const useSensorsStore = create<SensorsState>((set, get) => ({
-    sensors: buildMockSensors(),
+    sensors: BASE_SENSORS,
     series: {},
     upsertSample: (id, sample) => set(s => ({
         series: {
@@ -33,4 +34,4 @@ export function useLastByRow(territoryId?: string) {
 }
 
 // avvia la simulazione quando importato dalla Dashboard
-startMockFeed((id: any, sample: any) => useSensorsStore.getState().upsertSample(id, sample))
+startMockFeed(BASE_SENSORS, (id,sample)=>useSensorsStore.getState().upsertSample(id,sample))

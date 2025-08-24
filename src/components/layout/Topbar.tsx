@@ -1,12 +1,31 @@
-import { useUIStore } from '@/stores/useUIStore'
+//import { useUIStore } from '@/stores/useUIStore'
+//import { useResponsiveSidebar } from './sidebar/useResponsiveSidebar';
+import logo from "@/assets/logo.png";
+import IconButton from '../ui/buttons/IconButton';
+import { BsLayoutSidebar } from "react-icons/bs";
+import { useSidebarStore } from '@/hooks/controller';
+
+const SidebarIcon = BsLayoutSidebar as React.FC<{ size?: number }>;
 
 
 export default function Topbar() {
-    const { features, toggleFeature } = useUIStore()
+    //const { features, toggleFeature } = useUIStore();
+    const { isOpen, toggleSidebar } = useSidebarStore();
+    
     return (
-        <div className="hidden fixed right-0 z-10 top-5 flex items-center justify-between container-p">
-            <div className="font-medium">Digital Twin • Demo</div>
-            <div className="flex gap-3 items-center text-sm">
+        <div className="fixed top-0 z-5 flex items-end justify-end container-p p-2 space-x-4 w-full">
+            <>
+            <IconButton
+                icon={<SidebarIcon size={20} />}
+                variant="text"
+                dataTooltipId="general-sidenav-tooltip"
+                dataTooltipContent={`${!isOpen ? "chiudi" : "apri"} barra di navigazione`}
+                onClick={toggleSidebar}
+                className={`h-fit`}
+            />
+            <img src={logo} alt="Logo" className={`w-full max-w-[40px] select-none`} />
+        </>
+            {/*<div className="flex gap-3 items-center text-sm">
                 <label className="flex items-center gap-2">
                     <input type="checkbox" checked={features.meteoStation} onChange={() => toggleFeature('meteoStation')} /> Meteo
                 </label>
@@ -19,7 +38,7 @@ export default function Topbar() {
                 <label className="flex items-center gap-2">
                     <input type="checkbox" checked={features.leafWetness} onChange={() => toggleFeature('leafWetness')} /> Bagnatura fogliare
                 </label>
-            </div>
+            </div>*/}
         </div>
     )
 }

@@ -2,7 +2,6 @@ import { MapContainer, TileLayer } from "react-leaflet";
 import TerritoryPolygon from "@/components/map/TerritoryPolygon";
 import SensorMarker from "@/components/map/SensorMarker";
 import { TERRITORIES_GEO } from "@/config/territories.geo";
-import Card from "@/components/ui/Card";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSidebarStore } from "@/hooks/controller";
@@ -11,8 +10,6 @@ import { RiArrowLeftWideFill } from "react-icons/ri";
 import { RiArrowRightWideLine } from "react-icons/ri";
 import IconButton from "@/components/ui/buttons/IconButton";
 import clsx from "clsx";
-import { useEffect } from "react";
-import { useResponsiveSidebar } from "@/components/layout/sidebar/useResponsiveSidebar";
 
 const ArrowLeft = RiArrowLeftWideFill as React.FC<{ size?: number }>;
 const ArrowRight = RiArrowRightWideLine as React.FC<{ size?: number }>;
@@ -20,12 +17,7 @@ const ArrowRight = RiArrowRightWideLine as React.FC<{ size?: number }>;
 export default function TerreniMap() {
     const nav = useNavigate();
     const { isOpen } = useSidebarStore();
-    const { isMobile } = useResponsiveSidebar(); // 👈 ora abbiamo isMobile
-
     const [terriListBar, setTerriListBar] = useState<boolean>(false);
-    const marginLeftClass = isOpen
-        ? "xl:ml-[88px]"
-        : "xl:ml-[279px]";
 
     const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
 
@@ -39,8 +31,6 @@ export default function TerreniMap() {
 
     const selected = TERRITORIES_GEO.find(t => t.id === selectedId) ?? TERRITORIES_GEO[0];
 
-    useEffect(() => console.log(terriListBar), [terriListBar]);
-
     return (
         <>
             {/* Sidebar sinistra: elenco terreni */}
@@ -50,12 +40,10 @@ export default function TerreniMap() {
                     "fixed z-5 flex flex-col h-full shrink-0 left-0 top-0 p-4",   // z più alto per stare sopra
                     isOpen ? 'xl:ml-[88px]' : 'xl:ml-[279px]',  // sposta a destra se sidebar aperta
                     // 👇 animazione: su mobile usiamo translateX
-                    !isMobile
-                        ? clsx(
-                            "transition-transform duration-200 ease-in-out",
-                            !terriListBar ? "translate-x-0" : "-translate-x-full"
-                        )
-                        : "transition-[width,background-color] duration-200 ease-in-out",
+                    clsx(
+                        "transition-transform duration-200 ease-in-out",
+                        terriListBar ? "translate-x-0" : "-translate-x-full"
+                    )
                 )}
             >
                 <div className="text-lg font-semibold mb-3">Terreni</div>
@@ -83,7 +71,7 @@ export default function TerreniMap() {
                     >Apri vista 3D</Button>
                 </div>
 
-                <IconButton variant="secondary" className="absolute -right-8 z-10 rounded-none h-40"
+                <IconButton variant="secondary" className="absolute top-1/3 -right-8 z-10 rounded-none h-40"
                     onClick={() => setTerriListBar(!terriListBar)}
                     icon={<ArrowRight size={16} />} />
             </aside>
@@ -106,7 +94,7 @@ export default function TerreniMap() {
             </div>
 
             {/* Quick Summary a destra */}
-            <Card className="fixed right-0 p-4 z-5">
+            {/*<Card className="fixed right-0 p-4 z-5">
                 <div className="text-lg font-semibold mb-3">Quick Summary</div>
                 <div className="text-sm mb-2 opacity-80">{selected?.name}</div>
                 <div className="space-y-3">
@@ -145,7 +133,7 @@ export default function TerreniMap() {
                         onClick={() => nav(`/terreni/${selected?.id}`)}
                     >Apri metriche e KPI</button>
                 </div>
-            </Card>
+            </Card>*/}
         </>
     );
 }
