@@ -10,7 +10,7 @@ export default function TimeSeries({ data, unit }: { data: Sample[], unit?: stri
                 <LineChart data={data.map(d => ({ x: new Date(d.t).toLocaleTimeString(), y: d.v }))}>
                     <XAxis dataKey="x" hide />
                     <YAxis tickFormatter={(v) => fmt(v as number)} width={40} />
-                    <Tooltip formatter={(v) => fmt(v as number)} />
+                    <Tooltip formatter={(v) => fmt(v as number)} labelClassName='text-xs text-neutral-400' />
                     <Line type="monotone" dataKey="y" dot={false} strokeWidth={2} />
                 </LineChart>
             </ResponsiveContainer>

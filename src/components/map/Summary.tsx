@@ -1,5 +1,7 @@
+import { useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { AnimatePresence, motion, Variants } from "framer-motion"
+import TimeSeries from "@/components/charts/TimeSeries"
 
 import { IoWaterOutline, IoCloseOutline } from "react-icons/io5"
 import { LuGlassWater } from "react-icons/lu"
@@ -27,25 +29,13 @@ const CloseIcon = IoCloseOutline as React.FC<{ size?: number; className?: string
 
 // Variants per il foglio
 const sheetVariants: Variants = {
-    open: {
-        y: 0,
-        transition: { type: "spring", stiffness: 380, damping: 30, mass: 0.7 }
-    },
-    closed: {
-        y: "100%",
-        transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } // ease-out morbida
-    }
+    open: { y: 0, transition: { type: "spring", stiffness: 380, damping: 30, mass: 0.7 } },
+    closed: { y: "100%", transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } }
 }
 
-// Variants per piccoli ingressi interni (opzionale)
-const contentStagger: Variants = {
-    open: { transition: { staggerChildren: 0.05, delayChildren: 0.06 } },
-    closed: {}
-}
-const item: Variants = {
-    open: { opacity: 1, y: 0, transition: { duration: 0.22 } },
-    closed: { opacity: 0, y: 8, transition: { duration: 0.12 } }
-}
+// Variants interni (ingressi leggeri)
+const contentStagger: Variants = { open: { transition: { staggerChildren: 0.05, delayChildren: 0.06 } }, closed: {} }
+const item: Variants = { open: { opacity: 1, y: 0, transition: { duration: 0.22 } }, closed: { opacity: 0, y: 8, transition: { duration: 0.12 } } }
 
 export default function MapSummary({
     selected,
@@ -63,16 +53,80 @@ export default function MapSummary({
     const sensors = useSensorsStore((s) => s.sensors.filter((k) => k.territoryId === tid))
     const series = useSensorsStore((s) => s.series)
 
-    const pH = series[`PH_INLINE_${tid}`]?.at(-1)?.v ?? 0
-    const ec = series[`EC_INLINE_${tid}`]?.at(-1)?.v ?? 0
+    // ➜ Fix iOS: misura la porzione di UI che copre il viewport (barra Safari, home indicator)
+    useEffect(() => {
+        const vv = (window as any).visualViewport
+        if (!vv) return
+        const setVar = () => {
+            // quanto del viewport "visivo" è coperto rispetto a innerHeight
+            const obstruct = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop))
+            document.documentElement.style.setProperty("--ios-bottom-ui", obstruct + "px")
+        }
+        setVar()
+        vv.addEventListener("resize", setVar)
+        vv.addEventListener("scroll", setVar)
+        return () => {
+            vv.removeEventListener("resize", setVar)
+            vv.removeEventListener("scroll", setVar)
+        }
+    }, [])
 
     if (!t) return <div>Terreno non trovato</div>
+
+    // valore comodo da riusare nei style
+    const bottomOffset = "max(var(--ios-bottom-ui, 0px), env(safe-area-inset-bottom))"
+    // --- DERIVATE TOP-LEVEL (niente hook dentro IIFE/condizioni!) ---
+    const vwcSensors = useMemo(
+        () => sensors.filter((s) => s.kind === "VWC"),
+        [sensors]
+    )
+
+    const vwcAvg = useMemo(() => {
+        const lastVals = vwcSensors
+            .map((s) => series[s.id]?.at(-1)?.v)
+            .filter((v): v is number => typeof v === "number")
+        return lastVals.length ? lastVals.reduce((a, b) => a + b, 0) / lastVals.length : 0
+    }, [vwcSensors, series])
+
+    const sampleId = vwcSensors[0]?.id ?? null
+    const sampleSeries = useMemo(
+        () => (sampleId ? (series[sampleId] ?? []) : []),
+        [sampleId, series]
+    )
+
+    // dedup lista sonde (come in Sensors.tsx)
+    const dedupList = useMemo(() => {
+        const map = new Map<string, typeof sensors[number]>()
+        for (const s of sensors) if (!map.has(s.id)) map.set(s.id, s)
+        return Array.from(map.values())
+    }, [sensors]);
+
+    /**
+     * Restituisce l'ultimo valore disponibile per una sonda dato il suo id.
+     * @param sensorId id della sonda
+     * @returns valore numerico o null se non disponibile
+     */
+    function getLastValueById(sensorId: string): number | null {
+        const data = series[sensorId];
+        if (!data || data.length === 0) return null;
+        const last = data.at(-1);
+        return typeof last?.v === "number" ? last.v : null;
+    };
+
+    const pH = getLastValueById(`PH_INLINE`) ?? 0
+    const ec = getLastValueById(`EC_INLINE`) ?? 0
+    // Δ pressione filtro (se pubblichi le chiavi per-terreno)
+    const ppre = getLastValueById(`P_PRE`) ?? 0
+    const ppost = getLastValueById(`P_POST`) ?? 0
+    const delta = ppre - ppost
+
+    useEffect(() => console.log(dedupList), [dedupList])
 
     return (
         <AnimatePresence>
             {summaryOpen && (
                 <>
-                    {/* Backdrop con fade; chiude al click */}
+                    {/* Backdrop */}
                     <motion.div
                         className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
                         initial={{ opacity: 0 }}
@@ -86,13 +140,15 @@ export default function MapSummary({
                     <motion.div
                         role="dialog"
                         aria-modal="true"
-                        className="fixed bottom-0 left-0 right-0 z-50"
+                        className="fixed left-0 right-0 z-50 overscroll-contain"
                         initial="closed"
                         animate="open"
                         exit="closed"
                         variants={sheetVariants}
+                        // ➜ ancoriamo SOPRA alla UI iOS (url bar/home) usando la var calcolata + safe-area
+                        style={{ bottom: `calc(${bottomOffset})` }}
 
-                        // ——— Drag-to-close opzionale: sblocca se ti piace il gesto
+                        // Drag-to-close
                         drag="y"
                         dragConstraints={{ top: 0, bottom: 0 }}
                         dragElastic={0.12}
@@ -102,15 +158,24 @@ export default function MapSummary({
                     >
                         <motion.div
                             variants={contentStagger}
-                            className="mx-auto w-full max-w-6xl h-[75vh] rounded-t-2xl border border-white/10 bg-neutral-900/90 text-white shadow-2xl"
-                            onClick={(e) => e.stopPropagation()} // evita di chiudere cliccando dentro
+                            className="
+                              mx-auto w-full max-w-6xl 
+                              h-full         /* svh = altezza con barra visibile */
+                              rounded-t-2xl border border-white/10 
+                              bg-neutral-900/90 text-white shadow-2xl
+                            "
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                // padding extra per evitare che il contenuto tocchi la UI in basso
+                                paddingBottom: `max(${bottomOffset}, 16px)`
+                            }}
                         >
-                            {/* Handle / header */}
+                            {/* Handle */}
                             <motion.div variants={item} className="px-4 pt-3">
                                 <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-white/30" />
                             </motion.div>
 
-                            {/* Header superiore (nome + azioni) */}
+                            {/* Header */}
                             <motion.div variants={item} className="flex items-center justify-between p-4">
                                 <div>
                                     <div className="text-2xl font-semibold">{t.name}</div>
@@ -130,7 +195,8 @@ export default function MapSummary({
                             </motion.div>
 
                             {/* Contenuto scrollabile */}
-                            <motion.div variants={item} className="overflow-auto p-4 space-y-6">
+                            <motion.div variants={item} className="overflow-auto p-4 space-y-6 h-[calc(100svh-300px)]">
+                                {/* === KPI TOP ROW (LIVE) === */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-black">
                                     <Card variant="dark" className="p-4">
                                         <WaterIcon size={25} />
@@ -140,6 +206,7 @@ export default function MapSummary({
                                             {pH < 5.0 || pH > 5.8 ? <Badge tone="warn">Correggere</Badge> : <Badge tone="ok">OK</Badge>}
                                         </div>
                                     </Card>
+
                                     <Card variant="dark" className="p-4">
                                         <EnergyIcon size={25} />
                                         <div className="text-sm">EC in linea</div>
@@ -148,26 +215,102 @@ export default function MapSummary({
                                         </div>
                                         <div className="mt-2">{ec > 1.5 ? <Badge tone="warn">Alta</Badge> : <Badge tone="ok">OK</Badge>}</div>
                                     </Card>
+
                                     <Card variant="dark" className="p-4">
                                         <NetworkIcon size={25} />
                                         <div className="text-sm">Sonde attive</div>
                                         <div className="text-3xl font-semibold">{sensors.length}</div>
                                     </Card>
+
                                     <Card variant="dark" className="p-4">
                                         <LayersIcon size={25} />
-                                        <div className="text-sm">Settori</div>
-                                        <div className="text-3xl font-semibold">{t.layout.sectors.length}</div>
+                                        <div className="text-sm">Δ Pressione filtro</div>
+                                        <div className="text-3xl font-semibold">{delta.toFixed(2)} <span className="text-base">bar</span></div>
+                                        <div className="mt-2">{delta > 0.6 ? <Badge tone="warn">Lavaggio</Badge> : <Badge tone="ok">OK</Badge>}</div>
                                     </Card>
                                 </div>
 
-                                <div className="grid grid-cols-3 md:grid-cols-6 gap-3 text-black">
-                                    {t.layout.sectors.map((s) => (
-                                        <Card variant="dark" key={s.id} className="p-3">
-                                            <div className="text-sm">Settore</div>
-                                            <div className="text-xl font-semibold">{s.id}</div>
-                                            <div className="text-sm mt-1 text-neutral-500">File: {s.rows.join(", ")}</div>
-                                        </Card>
-                                    ))}
+                                {/* === MEDIA VWC + TREND === */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    <Card variant="dark" className="p-4 text-black">
+                                        <div className="text-sm text-neutral-300">Umidità suolo media (VWC)</div>
+                                        <div className="text-3xl font-semibold text-white">
+                                            {vwcAvg ? vwcAvg.toFixed(1) : "—"} <span className="text-base">% v/v</span>
+                                        </div>
+                                        <div className="mt-2">
+                                            {vwcAvg === 0 ? (
+                                                <Badge tone="warn">N/D</Badge>
+                                            ) : vwcAvg < 22 ? (
+                                                <Badge tone="warn">Bassa</Badge>
+                                            ) : vwcAvg > 30 ? (
+                                                <Badge tone="warn">Alta</Badge>
+                                            ) : (
+                                                <Badge tone="ok">Ottimale</Badge>
+                                            )}
+                                        </div>
+                                    </Card>
+
+                                    <Card variant="dark" className="p-4">
+                                        <div className="font-medium mb-2">Trend pH & EC (ultimi 10 min)</div>
+                                        <div className="space-y-3">
+                                            {/* Se non usi TimeSeries nel progetto, puoi rimuovere queste due righe */}
+                                            <TimeSeries data={series[`PH_INLINE`] ?? []} />
+                                            <TimeSeries data={series[`EC_INLINE`] ?? []} />
+                                        </div>
+                                    </Card>
+
+                                    <Card variant="dark" className="p-4 lg:col-span-2">
+                                        <div className="font-medium mb-2">VWC – campione sonda</div>
+                                        {/* opzionale: rimuovi se TimeSeries non c'è */}
+                                        <TimeSeries data={sampleSeries} unit="%" />
+                                        <div className="text-xs text-neutral-400 mt-1">
+                                            {sampleId ? `Sonda: ${sampleId}` : "Nessuna sonda VWC disponibile in questo terreno"}
+                                        </div>
+                                    </Card>
+                                </div>
+
+                                {/* === RIASSUNTO PER SETTORE === */}
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-black">
+                                    {t.layout.sectors.map((sec) => {
+                                        const secVWCs = vwcSensors.filter((s) => s.sector === sec.id)
+                                        const lastVals = secVWCs
+                                            .map((s) => series[s.id]?.at(-1)?.v)
+                                            .filter((v): v is number => typeof v === "number")
+                                        const avg = lastVals.length ? lastVals.reduce((a, b) => a + b, 0) / lastVals.length : 0
+
+                                        const tone = avg === 0 ? "warn" : avg < 22 ? "warn" : avg > 30 ? "warn" : "ok"
+                                        const label = avg === 0 ? "N/D" : avg < 22 ? "Bassa" : avg > 30 ? "Alta" : "Ottimale"
+
+                                        return (
+                                            <Card variant="dark" key={sec.id} className="p-3">
+                                                <div className="text-sm">Settore {sec.id}</div>
+                                                <div className="text-xl font-semibold">{avg ? avg.toFixed(1) : "—"}%</div>
+                                                <div className="text-xs text-neutral-400">File: {sec.rows.join(", ")}</div>
+                                                <div className="mt-1"><Badge tone={tone as any}>{label}</Badge></div>
+                                            </Card>
+                                        )
+                                    })}
+                                </div>
+
+                                {/* === LISTA SONDE (dedup) === */}
+                                <div className="grid grid-cols-3 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                    {dedupList.filter((s) => !(["PH_INLINE", "EC_INLINE", "P_PRE", "P_POST"]
+                                    .includes(s.id))).map((s) => {
+                                        const last = series[s.id]?.at(-1)?.v
+                                        return (
+                                            <Card key={s.id} variant="dark" className="p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="font-medium">{s.label}</div>
+                                                </div>
+                                                <div className="text-2xl mt-1 text-white">
+                                                    {typeof last === "number" ? last.toFixed(2) : "—"} <span className="text-base">{s.unit}</span>
+                                                </div>
+                                                <div className="text-xs text-neutral-400 mt-1">
+                                                    {s.sector ? `Settore ${s.sector}` : ""} {s.row ? `• Fila ${s.row}` : ""} {s.depthCm ? `• ${s.depthCm} cm` : ""}
+                                                </div>
+                                            </Card>
+                                        )
+                                    })}
                                 </div>
                             </motion.div>
                         </motion.div>
