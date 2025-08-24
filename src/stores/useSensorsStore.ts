@@ -21,6 +21,16 @@ export const useSensorsStore = create<SensorsState>((set, get) => ({
     }))
 }))
 
+export function useLastByRow(territoryId?: string) {
+    const sensors = useSensorsStore(s => s.sensors)
+    const series = useSensorsStore(s => s.series)
+    return (row: number) => {
+        const cands = sensors.filter(s => s.territoryId === territoryId && s.row === row && s.kind === 'VWC')
+        const vals = cands.map(s => series[s.id]?.at(-1)?.v).filter((x): x is number => x != null)
+        if (!vals.length) return undefined
+        return vals.reduce((a, b) => a + b, 0) / vals.length
+    }
+}
 
 // avvia la simulazione quando importato dalla Dashboard
 startMockFeed((id: any, sample: any) => useSensorsStore.getState().upsertSample(id, sample))

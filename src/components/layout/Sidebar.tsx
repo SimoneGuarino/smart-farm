@@ -78,7 +78,7 @@ export default function Sidebar() {
             <SideNavHeader NavLink={NavLink} navIsFocused={navIsFocused} />
 
             <LinkItem to="/" label="Dashboard" icon={<DashboardIcon size={25}/>} />
-            <LinkItem to="/campo" label={"Campo 3D"} icon={<Campo3DIcon size={25}/>} />
+            <LinkItem to="/terreni" label={"Terreni"} icon={<Campo3DIcon size={25}/>} />
             <LinkItem to="/sonde" label={"Sonde"} icon={<AnalyticsIcon size={25}/>} />
         </SidebarContainer>
 

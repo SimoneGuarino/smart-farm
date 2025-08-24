@@ -4,7 +4,7 @@ import { useUIStore } from '@/stores/useUIStore'
 export default function Topbar() {
     const { features, toggleFeature } = useUIStore()
     return (
-        <div className="fixed right-0 top-5 flex items-center justify-between container-p">
+        <div className="fixed right-0 z-10 top-5 flex items-center justify-between container-p">
             <div className="font-medium">Digital Twin • Demo</div>
             <div className="flex gap-3 items-center text-sm">
                 <label className="flex items-center gap-2">

@@ -1,126 +1,96 @@
 import { Canvas } from '@react-three/fiber'
-import { Html, OrbitControls } from '@react-three/drei'
-import { rows, rowSpacing, rowLength, sectors } from '@/config/fieldLayout'
+import { OrbitControls, Line, Html } from '@react-three/drei'
+import { territories } from '@/config/territories'
+import { useParams } from 'react-router-dom'
 import { useUIStore } from '@/stores/useUIStore'
-import { useSensorsStore } from '@/stores/useSensorsStore'
-import { useMemo } from 'react'
+import { useLastByRow } from '@/stores/useSensorsStore'
+import DashboardLayout from '../DashboardLayout'
 
-/** centro del blocco di file: comodo per allineare tutto a z=0 */
-const CENTER_Z = 0
-const START_Z = CENTER_Z - ((rows.length - 1) * rowSpacing) / 2
-
-function useRowStressColor(rowId: number) {
-    const series = useSensorsStore(s => s.series)
-
-    return useMemo(() => {
-        // prendo VWC 20 e 35 cm della fila se presenti, altrimenti cerco la fila strumentata più vicina
-        const probeRows = [1, 16, 30, 33]
-        const nearest =
-            probeRows.reduce((best, r) =>
-                Math.abs(r - rowId) < Math.abs(best - rowId) ? r : best
-                , probeRows[0])
-
-        const v20 = series[`VWC_${nearest}_20`]?.at(-1)?.v
-        const v35 = series[`VWC_${nearest}_35`]?.at(-1)?.v
-        const v = (v20 != null && v35 != null) ? (v20 + v35) / 2
-            : (v20 ?? v35 ?? 26) // default “neutro” se mancano dati
-
-        // mappa stress: 0 ok (22–30), >0 fino a 1 = critico
-        let stress = 0
-        if (v < 22) stress = Math.min(1, (22 - v) / 8)         // fino a 14% → 1
-        else if (v > 30) stress = Math.min(1, (v - 30) / 8)    // fino a 38% → 1
-
-        // gradiente HSL: 120° (verde) → 0° (rosso)
-        const hue = 120 * (1 - stress)
-        const color = `hsl(${hue} 70% 55%)`
-        return color
-    }, [rowId, series])
-}
-
-function RowMesh({ index, sector }: { index: number; sector: string }) {
+function RowMesh({ index, rowId, sector, spacing, length, getVwc }: { index: number; rowId: number; sector: string; spacing: number; length: number; getVwc: (row: number) => number | undefined }) {
     const { setSelected } = useUIStore()
-    const z = START_Z + index * rowSpacing
-    const color = useRowStressColor(index + 1)
-
+    const z = index * spacing
+    const vwc = getVwc(rowId)
+    // mappa colore: <22% rosso, 22-30% verde, >30% ambra
+    let color = '#94a3b8' // default
+    if (vwc != null) {
+        if (vwc < 22) color = '#f87171'
+        else if (vwc > 30) color = '#f59e0b'
+        else color = '#34d399'
+    }
     return (
         <group position={[0, 0, z]}>
-            {/* rettangolo fila */}
-            <mesh onClick={() => setSelected({ row: index + 1 })}>
-                <boxGeometry args={[rowLength, 0.2, 0.8]} />
+            <mesh position={[0, 0.05, 0]} onClick={() => setSelected({ row: rowId })}>
+                <boxGeometry args={[length, 0.1, 0.8]} />
                 <meshStandardMaterial color={color} />
             </mesh>
         </group>
     )
 }
 
-function Ground() {
-    // piano centrato a z=0, niente offset “fantasma”
+function SectorOutline({ rows, spacing, length }: { rows: number[]; spacing: number; length: number }) {
+    // disegna un rettangolo che abbraccia il range di righe del settore
+    const first = Math.min(...rows) - 1
+    const last = Math.max(...rows) - 1
+    const z0 = first * spacing - spacing / 2
+    const z1 = (last + 1) * spacing + spacing / 2
+    const x0 = -length / 2 - 0.5, x1 = length / 2 + 0.5
+    const points = [
+        [x0, 0.02, z0], [x1, 0.02, z0],
+        [x1, 0.02, z1], [x0, 0.02, z1],
+        [x0, 0.02, z0]
+    ] as [number, number, number][]
+    return <Line points={points} lineWidth={2} color="#0ea5e9" dashed dashSize={2} gapSize={1} />
+}
+
+function Ground({ width, depth }: { width: number; depth: number }) {
     return (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.11, 0]}>
-            <planeGeometry args={[rowLength + 10, rows.length * rowSpacing + 10]} />
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, depth / 2]}>
+            <planeGeometry args={[width, depth]} />
             <meshStandardMaterial color="#e2e8f0" />
         </mesh>
     )
 }
 
-/** linee e label dei settori A–F */
-function SectorOverlays() {
-    const lineThickness = 0.06
-    const marginX = rowLength / 2 + 5
-
-    return (
-        <group>
-            {sectors.map((s) => {
-                const firstIdx = Math.min(...s.rows) - 1
-                const lastIdx = Math.max(...s.rows) - 1
-                const zStart = START_Z + (firstIdx - 0.5) * rowSpacing
-                const zEnd = START_Z + (lastIdx + 0.5) * rowSpacing
-                const zCenter = (zStart + zEnd) / 2
-
-                return (
-                    <group key={s.id}>
-                        {/* linee sottili ai bordi del settore */}
-                        <mesh position={[0, 0.01, zStart]}>
-                            <boxGeometry args={[rowLength + 10, lineThickness, lineThickness]} />
-                            <meshStandardMaterial color="#475569" />
-                        </mesh>
-                        <mesh position={[0, 0.01, zEnd]}>
-                            <boxGeometry args={[rowLength + 10, lineThickness, lineThickness]} />
-                            <meshStandardMaterial color="#475569" />
-                        </mesh>
-
-                        {/* etichetta sospesa sul bordo sinistro */}
-                        <Html
-                            position={[-marginX, 0.6, zCenter]}
-                            center
-                            distanceFactor={15}
-                            transform
-                        >
-                            <div className="px-2 py-1 rounded-md text-xs bg-white/80 border border-slate-300 shadow">
-                                Settore <b>{s.id}</b>
-                            </div>
-                        </Html>
-                    </group>
-                )
-            })}
-        </group>
-    )
-}
-
 export default function FieldScene() {
+    const { tid } = useParams<{ tid: string }>()
+    const t = territories.find(x => x.id === tid) ?? territories[0]
+    const { rows, rowSpacing, rowLength, sectors } = t.layout
+    const getVwc = useLastByRow(t.id)
+
+    const depth = rows.length * rowSpacing + 10
+    const width = rowLength + 10
+
     return (
-        <div className="h-full w-full">
+        <div className="h-[100vh] overflow-hidden">
             <Canvas camera={{ position: [-40, 50, 80], fov: 45 }}>
-                <ambientLight intensity={0.8} />
+                <ambientLight intensity={0.9} />
                 <directionalLight position={[50, 80, 40]} intensity={1} />
-                <Ground />
-                <SectorOverlays />
+                <Ground width={width} depth={depth} />
                 {rows.map((r, i) => (
-                    <RowMesh key={r.id} index={i} sector={r.sector} />
+                    <RowMesh key={r.id} index={i} rowId={r.id} sector={r.sector as string} spacing={rowSpacing} length={rowLength} getVwc={getVwc} />
                 ))}
-                {/* target al centro vero del campo */}
-                <OrbitControls makeDefault target={[0, 0, 0]} />
+                {sectors.map(s => (
+                    <SectorOutline key={String(s.id)} rows={s.rows} spacing={rowSpacing} length={rowLength} />
+                ))}
+                {t.layout.sectors.map(s => {
+                    const mid = (Math.min(...s.rows) - 1 + Math.max(...s.rows) - 1) / 2 * rowSpacing
+                    // condizione demo:
+                    const needWater = s.rows.some(r => (getVwc(r) ?? 26) < 22)
+                    return needWater ? (
+                        <Html key={String(s.id)} position={[rowLength / 2 + 1, 0.3, mid]}>
+                            <span className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 shadow">Need water</span>
+                        </Html>
+                    ) : null
+                })}
+                <OrbitControls makeDefault target={[0, 0, (rows.length * rowSpacing) / 2]} />
             </Canvas>
+            {/* overlay UI minimale */}
+            <DashboardLayout>
+            <div className="fixed top-3 bg-white/90 backdrop-blur px-3 py-2 rounded-xl text-sm shadow">
+                <div className="font-medium">{t.name}</div>
+                <div className="text-slate-600">{t.areaHa} ha • {rows.length} file • {sectors.length} settori</div>
+            </div>
+            </DashboardLayout>
         </div>
     )
 }

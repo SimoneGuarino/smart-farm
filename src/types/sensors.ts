@@ -5,6 +5,7 @@ export interface Sensor {
     id: string
     kind: SensorKind
     label: string
+    territoryId?: string
     sector?: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
     row?: number
     depthCm?: number
