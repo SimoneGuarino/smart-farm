@@ -5,10 +5,28 @@ import { TERRITORIES_GEO } from "@/config/territories.geo";
 import Card from "@/components/ui/Card";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import DashboardLayout from "@/components/DashboardLayout";
+import { useSidebarStore } from "@/hooks/controller";
+import Button from "@/components/ui/buttons/Button";
+import { RiArrowLeftWideFill } from "react-icons/ri";
+import { RiArrowRightWideLine } from "react-icons/ri";
+import IconButton from "@/components/ui/buttons/IconButton";
+import clsx from "clsx";
+import { useEffect } from "react";
+import { useResponsiveSidebar } from "@/components/layout/sidebar/useResponsiveSidebar";
+
+const ArrowLeft = RiArrowLeftWideFill as React.FC<{ size?: number }>;
+const ArrowRight = RiArrowRightWideLine as React.FC<{ size?: number }>;
 
 export default function TerreniMap() {
     const nav = useNavigate();
+    const { isOpen } = useSidebarStore();
+    const { isMobile } = useResponsiveSidebar(); // 👈 ora abbiamo isMobile
+
+    const [terriListBar, setTerriListBar] = useState<boolean>(false);
+    const marginLeftClass = isOpen
+        ? "xl:ml-[88px]"
+        : "xl:ml-[279px]";
+
     const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
 
     // centro mappa = media semplice dei centroidi dei poligoni
@@ -21,11 +39,25 @@ export default function TerreniMap() {
 
     const selected = TERRITORIES_GEO.find(t => t.id === selectedId) ?? TERRITORIES_GEO[0];
 
+    useEffect(() => console.log(terriListBar), [terriListBar]);
+
     return (
-        <DashboardLayout>
-            <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr_320px] gap-4 items-start">
+        <>
             {/* Sidebar sinistra: elenco terreni */}
-            <Card className="p-4 h-[calc(100vh-120px)] overflow-auto">
+            <aside
+                className={clsx(
+                    "bg-white",
+                    "fixed z-5 flex flex-col h-full shrink-0 left-0 top-0 p-4",   // z più alto per stare sopra
+                    isOpen ? 'xl:ml-[88px]' : 'xl:ml-[279px]',  // sposta a destra se sidebar aperta
+                    // 👇 animazione: su mobile usiamo translateX
+                    !isMobile
+                        ? clsx(
+                            "transition-transform duration-200 ease-in-out",
+                            !terriListBar ? "translate-x-0" : "-translate-x-full"
+                        )
+                        : "transition-[width,background-color] duration-200 ease-in-out",
+                )}
+            >
                 <div className="text-lg font-semibold mb-3">Terreni</div>
                 <div className="space-y-2">
                     {TERRITORIES_GEO.map(t => (
@@ -39,20 +71,25 @@ export default function TerreniMap() {
                         </button>
                     ))}
                 </div>
-                <div className="mt-4">
-                    <button
-                        className="w-full px-3 py-2 rounded-xl bg-brand-600 text-white"
+                <div className="mt-4 space-y-2">
+                    <Button
+                        className="w-full"
                         onClick={() => nav(`/terreni/${selected?.id}`)}
-                    >Apri dashboard terreno</button>
-                    <button
-                        className="w-full mt-2 px-3 py-2 rounded-xl bg-slate-900 text-white"
+                    >Apri dashboard terreno</Button>
+                    <Button
+                        variant="secondary"
+                        className="w-full"
                         onClick={() => nav(`/terreni/${selected?.id}/3d`)}
-                    >Apri vista 3D</button>
+                    >Apri vista 3D</Button>
                 </div>
-            </Card>
+
+                <IconButton variant="secondary" className="absolute -right-8 z-10 rounded-none h-40"
+                    onClick={() => setTerriListBar(!terriListBar)}
+                    icon={<ArrowRight size={16} />} />
+            </aside>
 
             {/* Mappa centrale */}
-            <div className="rounded-2xl overflow-hidden border border-slate-200 h-[calc(100vh-120px)]">
+            <div className="fixed top-0 left-0 w-full rounded-2xl overflow-hidden border border-slate-200 h-full">
                 <MapContainer center={center} zoom={16} scrollWheelZoom className="h-full w-full">
                     <TileLayer
                         // OSM standard; puoi sostituire con satellite (es. MapTiler/Mapbox se vuoi chiavi)
@@ -69,7 +106,7 @@ export default function TerreniMap() {
             </div>
 
             {/* Quick Summary a destra */}
-            <Card className="p-4 h-[calc(100vh-120px)]">
+            <Card className="fixed right-0 p-4 z-5">
                 <div className="text-lg font-semibold mb-3">Quick Summary</div>
                 <div className="text-sm mb-2 opacity-80">{selected?.name}</div>
                 <div className="space-y-3">
@@ -109,7 +146,6 @@ export default function TerreniMap() {
                     >Apri metriche e KPI</button>
                 </div>
             </Card>
-            </div>
-        </DashboardLayout>
+        </>
     );
 }
