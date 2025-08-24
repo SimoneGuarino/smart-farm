@@ -18,7 +18,6 @@ export const TERRITORIES_GEO: TerritoryGeo[] = [
         ],
         sensors: [
             { id: "PH_INLINE_T1", pos: [41.59060, 12.97260] },
-            { id: "GW_1", pos: [41.59020, 12.97310] },
         ]
     },
     {

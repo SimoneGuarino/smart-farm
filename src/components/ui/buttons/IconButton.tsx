@@ -21,7 +21,7 @@ const variantClasses: Record<string, string> = {
     general: 'bg-gray-200/40 dark:!bg-neutral-800 hover:!bg-gray-300 dark:hover:!bg-neutral-700',
     primary: 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-red-500/50 dark:hover:bg-red-600/70',
     secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600',
-    danger: 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600',
+    danger: 'bg-red-600/40 text-white hover:bg-red-700/60 dark:bg-red-500 dark:hover:bg-red-600',
     success: 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600',
     text: 'bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700',
 };

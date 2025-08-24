@@ -21,8 +21,6 @@ const LinkItem = ({ to, label, icon }: { to: string; label: string; icon: React.
     const { isOpen, closeSidebar } = useSidebarStore();
     const { isMobile } = useResponsiveSidebar();
 
-    useEffect(() => console.log("isOpen", isOpen), [isOpen])
-
     return (
         <NavLink to={to} onClick={() => isMobile && closeSidebar()} className={({ isActive }) =>
             `flex gap-2 py-2 ${isOpen ? 'px-8' : 'px-4' } 

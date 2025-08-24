@@ -6,13 +6,19 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSidebarStore } from "@/hooks/controller";
 import Button from "@/components/ui/buttons/Button";
-import { RiArrowLeftWideFill } from "react-icons/ri";
-import { RiArrowRightWideLine } from "react-icons/ri";
+
+import { RiArrowLeftWideFill, RiArrowRightWideLine } from "react-icons/ri";
+import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
+
 import IconButton from "@/components/ui/buttons/IconButton";
 import clsx from "clsx";
+import MapSummary from "@/components/map/Summary";
 
 const ArrowLeft = RiArrowLeftWideFill as React.FC<{ size?: number }>;
 const ArrowRight = RiArrowRightWideLine as React.FC<{ size?: number }>;
+const ArrowUp = IoIosArrowUp as React.FC<{ size?: number }>;
+const ArrowDown = IoIosArrowDown as React.FC<{ size?: number }>;
+
 
 export default function TerreniMap() {
     const nav = useNavigate();
@@ -20,6 +26,8 @@ export default function TerreniMap() {
     const [terriListBar, setTerriListBar] = useState<boolean>(false);
 
     const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+    const [summaryOpen, setSummaryOpen] = useState<boolean>(false);
+    const handleOpenSummary = () => setSummaryOpen(true);
 
     // centro mappa = media semplice dei centroidi dei poligoni
     const center = useMemo(() => {
@@ -30,6 +38,7 @@ export default function TerreniMap() {
     }, []);
 
     const selected = TERRITORIES_GEO.find(t => t.id === selectedId) ?? TERRITORIES_GEO[0];
+    const mapTilerKey = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
 
     return (
         <>
@@ -71,21 +80,25 @@ export default function TerreniMap() {
                     >Apri vista 3D</Button>
                 </div>
 
-                <IconButton variant="secondary" className="absolute top-1/3 -right-8 z-10 rounded-none h-40"
+                <IconButton variant="secondary" className="absolute top-1/2 -right-8 z-10 rounded-none h-20"
                     onClick={() => setTerriListBar(!terriListBar)}
                     icon={<ArrowRight size={16} />} />
             </aside>
 
             {/* Mappa centrale */}
-            <div className="fixed top-0 left-0 w-full rounded-2xl overflow-hidden border border-slate-200 h-full">
-                <MapContainer center={center} zoom={16} scrollWheelZoom className="h-full w-full">
+            <div className="fixed top-0 left-0 w-full h-full">
+                <MapContainer zoomControl={false} center={center} zoom={16} scrollWheelZoom className="h-full w-full">
                     <TileLayer
-                        // OSM standard; puoi sostituire con satellite (es. MapTiler/Mapbox se vuoi chiavi)
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; OpenStreetMap'
+                        url={
+                            mapTilerKey
+                                ? `https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg?key=${mapTilerKey}`
+                                : // fallback pubblico (World Imagery)
+                                "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                        }
+                        attribution="&copy; MapTiler & OpenStreetMap contributors"
                     />
                     {TERRITORIES_GEO.map(t => (
-                        <TerritoryPolygon key={t.id} t={t} />
+                        <TerritoryPolygon key={t.id} t={t} handleOpenSummary={handleOpenSummary} setSelectedId={setSelectedId}/>
                     ))}
                     {TERRITORIES_GEO.flatMap(t => t.sensors?.map(s => (
                         <SensorMarker key={s.id} id={s.id} pos={s.pos} />
@@ -94,46 +107,7 @@ export default function TerreniMap() {
             </div>
 
             {/* Quick Summary a destra */}
-            {/*<Card className="fixed right-0 p-4 z-5">
-                <div className="text-lg font-semibold mb-3">Quick Summary</div>
-                <div className="text-sm mb-2 opacity-80">{selected?.name}</div>
-                <div className="space-y-3">
-                    <div>
-                        <div className="flex justify-between text-xs opacity-70">
-                            <span>Device status</span><span>OK</span>
-                        </div>
-                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full w-4/5 bg-emerald-400" />
-                        </div>
-                    </div>
-                    <div>
-                        <div className="flex justify-between text-xs opacity-70">
-                            <span>Signal</span><span>avg: good</span>
-                        </div>
-                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full w-3/4 bg-blue-400" />
-                        </div>
-                    </div>
-                    <div>
-                        <div className="flex justify-between text-xs opacity-70">
-                            <span>Battery</span><span>60–100%</span>
-                        </div>
-                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full w-4/5 bg-amber-400" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-6 space-y-2">
-                    <div className="text-sm font-medium">Azioni rapide</div>
-                    <button className="w-full px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200"
-                        onClick={() => nav(`/terreni/${selected?.id}/3d`)}
-                    >Mostra sezioni e filari in 3D</button>
-                    <button className="w-full px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200"
-                        onClick={() => nav(`/terreni/${selected?.id}`)}
-                    >Apri metriche e KPI</button>
-                </div>
-            </Card>*/}
+            <MapSummary selected={selected} summaryOpen={summaryOpen} setSummaryOpen={setSummaryOpen} />
         </>
     );
 }
