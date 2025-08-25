@@ -13,12 +13,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     // transition for margin-left/right
     const baseClasses =
         "p-6 relative flex flex-col transition-[margin-left,margin-right] duration-300 ease-in-out mt-10";
-    const marginLeftClass = isOpen
-        ? "xl:ml-[105px]"
-        : "xl:ml-[274px]";
 
     return (
-        <div className={`${baseClasses} ${marginLeftClass}`}>
+        <div className={`${baseClasses}`}>
             {children}
         </div>
     );

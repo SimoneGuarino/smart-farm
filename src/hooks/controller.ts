@@ -1,6 +1,6 @@
 import create from 'zustand';
 
-interface SidebarState {
+/*interface SidebarState {
     isOpen: boolean;
     openSidebar: () => void;
     closeSidebar: () => void;
@@ -12,7 +12,7 @@ export const useSidebarStore = create<SidebarState>((set) => ({
     openSidebar: () => set({ isOpen: true }),
     closeSidebar: () => set({ isOpen: false }),
     toggleSidebar: () => set((state) => ({ isOpen: !state.isOpen })),
-}));
+}));*/
 
 interface DarkModeState {
     isDarkMode: boolean;

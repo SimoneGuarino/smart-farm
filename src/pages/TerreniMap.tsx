@@ -4,11 +4,9 @@ import SensorMarker from "@/components/map/SensorMarker";
 import { TERRITORIES_GEO } from "@/config/territories.geo";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSidebarStore } from "@/hooks/controller";
 import Button from "@/components/ui/buttons/Button";
 
 import { RiArrowLeftWideFill, RiArrowRightWideLine } from "react-icons/ri";
-import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 
 import IconButton from "@/components/ui/buttons/IconButton";
 import clsx from "clsx";
@@ -16,13 +14,10 @@ import MapSummary from "@/components/map/Summary";
 
 const ArrowLeft = RiArrowLeftWideFill as React.FC<{ size?: number }>;
 const ArrowRight = RiArrowRightWideLine as React.FC<{ size?: number }>;
-const ArrowUp = IoIosArrowUp as React.FC<{ size?: number }>;
-const ArrowDown = IoIosArrowDown as React.FC<{ size?: number }>;
 
 
 export default function TerreniMap() {
     const nav = useNavigate();
-    const { isOpen } = useSidebarStore();
     const [terriListBar, setTerriListBar] = useState<boolean>(false);
 
     const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
@@ -47,7 +42,6 @@ export default function TerreniMap() {
                 className={clsx(
                     "bg-white",
                     "fixed z-5 flex flex-col h-full shrink-0 left-0 top-0 p-4",   // z più alto per stare sopra
-                    isOpen ? 'xl:ml-[88px]' : 'xl:ml-[279px]',  // sposta a destra se sidebar aperta
                     // 👇 animazione: su mobile usiamo translateX
                     clsx(
                         "transition-transform duration-200 ease-in-out",
@@ -80,7 +74,9 @@ export default function TerreniMap() {
                     >Apri vista 3D</Button>
                 </div>
 
-                <IconButton variant="secondary" className="absolute top-1/2 -right-8 z-10 rounded-none h-20"
+                <IconButton variant="secondary" className="absolute top-1/2 -right-8 z-10 h-20
+                rounded-none"
+
                     onClick={() => setTerriListBar(!terriListBar)}
                     icon={<ArrowRight size={16} />} />
             </aside>
