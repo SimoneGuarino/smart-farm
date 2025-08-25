@@ -10,7 +10,6 @@ import { MdOutlineEnergySavingsLeaf } from "react-icons/md"
 import { IoLayersOutline } from "react-icons/io5"
 import { PiNetwork } from "react-icons/pi"
 
-import { TerritoryGeo } from "@/types/geo"
 import { territories } from "@/config/territories"
 import { useSensorsStore } from "@/stores/useSensorsStore"
 
@@ -18,6 +17,7 @@ import Card from "@/components/ui/Card"
 import Badge from "@/components/ui/Badge"
 import IconButton from "../ui/buttons/IconButton"
 import Weather from "../layout/Weather"
+import { Territory } from "@/types/farm"
 
 const WaterIcon = IoWaterOutline as React.FC<{ size?: number }>
 const PhIcon = LuGlassWater as React.FC<{ size?: number }>
@@ -42,7 +42,7 @@ export default function MapSummary({
     summaryOpen,
     setSummaryOpen
 }: {
-    selected: TerritoryGeo
+    selected: Territory
     summaryOpen: boolean
     setSummaryOpen: (open: boolean) => void
 }) {

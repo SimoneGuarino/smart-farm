@@ -1,18 +1,10 @@
 import type { Territory } from '@/types/farm';
 
-function mkRows(sectors: { id: string; rows: number[] }) {
-    const rows = Array.from({ length: sectors.rows.reduce((m, r) => Math.max(m, r), 0) }, (_, i) => {
-        const id = i + 1;
-        const sec = sectors.rows.includes(id) ? sectors.id : 'A';
-        return { id, sector: sec as any };
-    });
-    return rows;
-}
-
 export const territories: Territory[] = [
     {
         id: 'T1',
         name: 'Terreno Nord',
+        crop: "blueberry",
         areaHa: 1.2,
         layout: {
             sectors: [
@@ -34,11 +26,24 @@ export const territories: Territory[] = [
             }),
             rowSpacing: 3,
             rowLength: 100
+        },
+        geo: {
+            polygon: [
+                [41.59094, 12.97212],
+                [41.59039, 12.97373],
+                [41.58953, 12.97322],
+                [41.59003, 12.97169],
+                [41.59094, 12.97212] // chiusura
+            ],
+            sensors: [
+                { id: "PH_INLINE_T1", pos: [41.59060, 12.97260] },
+            ]
         }
     },
     {
         id: 'T2',
         name: 'Terreno Sud',
+        crop: "chili",
         areaHa: 3.0,
         layout: {
             sectors: [
@@ -49,6 +54,18 @@ export const territories: Territory[] = [
             rows: Array.from({ length: 15 }, (_, i) => ({ id: i + 1, sector: (i < 5 ? 'A' : i < 10 ? 'B' : 'C') as any })),
             rowSpacing: 3.2,
             rowLength: 120
+        },
+        geo: {
+            polygon: [
+                [41.58792, 12.97551],
+                [41.58724, 12.97686],
+                [41.58632, 12.97615],
+                [41.58696, 12.97485],
+                [41.58792, 12.97551]
+            ],
+            sensors: [
+                { id: "PH_INLINE_T2", pos: [41.58745, 12.97590] },
+            ]
         }
     }
 ];
