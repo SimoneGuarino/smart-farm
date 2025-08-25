@@ -18,8 +18,7 @@ export default function Sidebar() {
 
     const routes = [
         { to: "/", label: "Dashboard", icon: <DashboardIcon size={20} /> },
-        { to: "/terreni", label: "Terreni", icon: <Campo3DIcon size={25} /> },
-        { to: "/terreni_google", label: "Terreni 3D", icon: <Campo3DIcon size={25} /> },
+        { to: "/terreni", label: "Terreni 3D", icon: <Campo3DIcon size={25} /> },
         { to: "/sonde", label: "Sonde", icon: <AnalyticsIcon size={25} /> },
     ];
 
