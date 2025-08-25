@@ -24,7 +24,7 @@ export default function Sidebar() {
 
     return (<>
         <aside className="fixed z-5 bottom-0 p-4 w-full">
-            <div className='flex bg-white dark:bg-stone-900 px-6 py-2 ml-auto mr-auto gap-4 w-fit rounded-full'>
+            <div className='flex bg-stone-100 dark:bg-stone-900 px-6 py-2 ml-auto mr-auto gap-4 w-fit rounded-full'>
                 {
                     routes.map(route => {
                         const isActive = window.location.pathname === route.to;
@@ -32,7 +32,8 @@ export default function Sidebar() {
                             <IconButton
                                 key={route.to}
                                 className={
-                                    `transition !p-3 ${isActive ? 'bg-green-100 text-green-600' : 'hover:bg-slate-100'}`
+                                    `transition !p-3 dark:text-gray-300 h-fit
+                                    ${isActive ? '!bg-green-300/50 dark:!bg-green-800/50 text-green-600' : 'hover:bg-slate-100'}`
                                 }
                                 onClick={() => nav(route.to)}
                                 icon={route.icon}

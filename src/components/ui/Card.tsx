@@ -3,7 +3,7 @@ import { ReactNode } from 'react'
 type Variant = 'primary' | 'dark'
 
 const variantClasses: Record<string, string> = {
-    primary: 'bg-white text-black/80 border border-slate-200',
+    primary: 'bg-white dark:bg-neutral-900 text-black/80 dark:text-gray-300 border border-slate-200 dark:border-slate-900',
     dark: 'bg-neutral-800/90 text-white',
 };
 

@@ -43,6 +43,15 @@
             ],
             "@/assets/*": [
                 "src/assets/*"
+            ],
+            "@/ai/*": [
+                "src/ai/*"
+            ],
+            "@/utils/*": [
+                "src/utils/*"
+            ],
+            "@/services/*": [
+                "src/services/*"
             ]
         }
     },

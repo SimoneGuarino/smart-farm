@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { AnimatePresence, motion, Variants } from "framer-motion"
 import TimeSeries from "@/components/charts/TimeSeries"
@@ -9,8 +9,11 @@ import { BsBadge3D } from "react-icons/bs"
 import { MdOutlineEnergySavingsLeaf } from "react-icons/md"
 import { IoLayersOutline } from "react-icons/io5"
 import { PiNetwork } from "react-icons/pi"
+import { GoAlert } from "react-icons/go";
+import { IoIosArrowDown } from "react-icons/io";
+import { IoChevronDown } from "react-icons/io5"; // opzionale per il toggle
 
-import { territories } from "@/config/territories"
+import { CROP_PROFILES } from "src/ai/advisor";
 import { useSensorsStore } from "@/stores/useSensorsStore"
 
 import Card from "@/components/ui/Card"
@@ -18,6 +21,10 @@ import Badge from "@/components/ui/Badge"
 import IconButton from "../ui/buttons/IconButton"
 import Weather from "../layout/Weather"
 import { Territory } from "@/types/farm"
+import { Crop } from "src/ai/types"
+import { getAdviceForTerritory } from "src/ai/advisor"
+import Button from "../ui/buttons/Button"
+
 
 const WaterIcon = IoWaterOutline as React.FC<{ size?: number }>
 const PhIcon = LuGlassWater as React.FC<{ size?: number }>
@@ -26,32 +33,55 @@ const EnergyIcon = MdOutlineEnergySavingsLeaf as React.FC<{ size?: number }>
 const LayersIcon = IoLayersOutline as React.FC<{ size?: number }>
 const NetworkIcon = PiNetwork as React.FC<{ size?: number }>
 const CloseIcon = IoCloseOutline as React.FC<{ size?: number; className?: string }>
+const GoAlertIcon = GoAlert as React.FC<{ size?: number; className: string }>;
+const DownIcon = IoIosArrowDown as React.FC<{ size?: number; className?: string }>;
+const ChevronDownIcon = IoChevronDown as React.FC<{ size?: number; className?: string }>;
 
 // Variants per il foglio
 const sheetVariants: Variants = {
     open: { y: 0, transition: { type: "spring", stiffness: 380, damping: 30, mass: 0.7 } },
     closed: { y: "100%", transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } }
-}
+};
+
+const expandVariants: Variants = {
+    closed: { height: 0, opacity: 0, transition: { duration: 0.18 } },
+    open: { height: "auto", opacity: 1, transition: { duration: 0.24 } },
+};
 
 // Variants interni (ingressi leggeri)
 const contentStagger: Variants = { open: { transition: { staggerChildren: 0.05, delayChildren: 0.06 } }, closed: {} }
 const item: Variants = { open: { opacity: 1, y: 0, transition: { duration: 0.22 } }, closed: { opacity: 0, y: 8, transition: { duration: 0.12 } } }
 
 export default function MapSummary({
-    selected,
+    t,
     summaryOpen,
     setSummaryOpen
 }: {
-    selected: Territory
+    t: Territory
     summaryOpen: boolean
     setSummaryOpen: (open: boolean) => void
 }) {
-    const nav = useNavigate()
-    const tid = selected.id
+    const [adviceDetailsOpen, setAdviceDetailsOpen] = useState<boolean>(false);
+    const nav = useNavigate();
 
-    const t = territories.find((x) => x.id === tid)
-    const sensors = useSensorsStore((s) => s.sensors.filter((k) => k.territoryId === tid))
-    const series = useSensorsStore((s) => s.series)
+    if (!t) return <div>Terreno non trovato</div>;
+
+    const tid = t?.id ?? '';
+
+    const sensors = useSensorsStore((s) => s.sensors.filter((k) => k.territoryId === tid));
+    const series = useSensorsStore((s) => s.series);
+
+    const sectorIds = useMemo(() => t?.layout.sectors.map(s => s.id) ?? [], [t]);
+    const crop = (t?.crop ?? 'field') as Crop;
+    const targets = CROP_PROFILES[crop] ?? CROP_PROFILES['field'];
+
+    // Genera l'advice per il territorio
+    const advice = useMemo(() => {
+        if (!tid || sectorIds.length === 0) return { generatedAt: Date.now(), summary: '—', insights: [] };
+        return getAdviceForTerritory(tid, sectorIds, crop);
+    }, [tid, sectorIds, crop, series]); // <— ogni push serie aggiorna l’advice
+
+    const hasInsights = advice.insights.length > 0; // <— verifica se ci sono insights
 
     // ➜ Fix iOS: misura la porzione di UI che copre il viewport (barra Safari, home indicator)
     useEffect(() => {
@@ -70,8 +100,6 @@ export default function MapSummary({
             vv.removeEventListener("scroll", setVar)
         }
     }, [])
-
-    if (!t) return <div>Terreno non trovato</div>
 
     // valore comodo da riusare nei style
     const bottomOffset = "max(var(--ios-bottom-ui, 0px), env(safe-area-inset-bottom))"
@@ -120,7 +148,6 @@ export default function MapSummary({
     const ppost = getLastValueById(`P_POST`) ?? 0
     const delta = ppre - ppost
 
-    useEffect(() => console.log(dedupList), [dedupList])
 
     return (
         <AnimatePresence>
@@ -140,7 +167,7 @@ export default function MapSummary({
                     <motion.div
                         role="dialog"
                         aria-modal="true"
-                        className="fixed left-0 right-0 z-50 overscroll-contain"
+                        className="fixed left-0 right-0 z-50 overscroll-contain h-full"
                         initial="closed"
                         animate="open"
                         exit="closed"
@@ -162,7 +189,7 @@ export default function MapSummary({
                               mx-auto w-full max-w-6xl 
                               h-full         /* svh = altezza con barra visibile */
                               rounded-t-2xl border border-white/10 
-                              bg-neutral-900/90 text-white shadow-2xl
+                              bg-neutral-900/90 text-white shadow-2xl space-y-4
                             "
                             onClick={(e) => e.stopPropagation()}
                             style={{
@@ -194,8 +221,80 @@ export default function MapSummary({
                                 <Weather temperature={20} weather={"sunny"} location={"casa"} />
                             </motion.div>
 
+                            <div className="grid grid-cols-1 gap-4 px-1">
+                                <Card variant="dark" className="p-4 mx-3">
+                                    <div className="text-sm text-neutral-300">
+                                        {hasInsights && <GoAlertIcon size={20} className="inline-block mr-1 mb-1 text-amber-400" />}
+                                        Assistente AI — {crop}
+                                    </div>
+                                    <div className="text-lg font-semibold text-white">{advice.summary}</div>
+
+                                    {hasInsights && (
+                                        <Button
+                                            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-sm"
+                                            onClick={() => setAdviceDetailsOpen(v => !v)}
+                                            aria-expanded={adviceDetailsOpen}
+                                            aria-controls="ai-details"
+                                        >
+                                            {adviceDetailsOpen ? "Nascondi dettagli" : "Mostra dettagli"}
+                                            <motion.span
+                                                animate={{ rotate: adviceDetailsOpen ? 180 : 0 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="inline-block"
+                                            >
+                                                <ChevronDownIcon size={18} />
+                                            </motion.span>
+                                        </Button>
+                                    )}
+                                </Card>
+
+                                {/* pannello espandibile */}
+                                <AnimatePresence initial={false}>
+                                    {hasInsights && adviceDetailsOpen && (
+                                        <motion.div
+                                            key="ai-details"
+                                            id="ai-details"
+                                            role="region"
+                                            aria-label="Dettagli consigli AI"
+                                            variants={expandVariants}
+                                            initial="closed"
+                                            animate="open"
+                                            exit="closed"
+                                            className="overflow-hidden px-3"
+                                        >
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 max-h-80 overflow-auto">
+                                                {advice.insights.map((i, index) => {
+                                                    const tone = i.severity === 'critical' ? 'warn' : i.severity === 'warning' ? 'warn' : 'ok';
+                                                    const lastElement = index === advice.insights.length - 1;
+
+                                                    return (
+                                                        <Card key={i.id} variant="dark" className={`p-4 ${lastElement && 'mb-25'}`}>
+                                                            <div className="flex items-start justify-between">
+                                                                <div>
+                                                                    <div className="font-medium text-white">{i.title}</div>
+                                                                    {i.detail && <div className="text-sm text-neutral-300 mt-1">{i.detail}</div>}
+                                                                    {!!i.actions?.length && (
+                                                                        <ul className="text-sm list-disc ml-5 mt-2 space-y-1 text-neutral-200">
+                                                                            {i.actions.map((a, idx) => <li key={idx}>{a}</li>)}
+                                                                        </ul>
+                                                                    )}
+                                                                </div>
+                                                                <Badge tone={tone as any}>{i.severity.toUpperCase()}</Badge>
+                                                            </div>
+                                                            {i.scope?.sector && (
+                                                                <div className="text-xs text-neutral-400 mt-2">Settore: {i.scope.sector}</div>
+                                                            )}
+                                                        </Card>
+                                                    );
+                                                })}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
                             {/* Contenuto scrollabile */}
-                            <motion.div variants={item} className="overflow-auto p-4 space-y-6 h-[calc(100svh-300px)]">
+                            <motion.div variants={item} className="overflow-auto p-4 space-y-6 h-2/4">
                                 {/* === KPI TOP ROW (LIVE) === */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-black">
                                     <Card variant="dark" className="p-4">
@@ -203,7 +302,11 @@ export default function MapSummary({
                                         <div className="text-sm">pH in linea</div>
                                         <div className="text-3xl font-semibold">{pH.toFixed(2)}</div>
                                         <div className="mt-2">
-                                            {pH < 5.0 || pH > 5.8 ? <Badge tone="warn">Correggere</Badge> : <Badge tone="ok">OK</Badge>}
+                                            {targets.phLo != null && targets.phHi != null && (pH < targets.phLo || pH > targets.phHi) ? (
+                                                <Badge tone="warn">Correggere</Badge>
+                                            ) : (
+                                                <Badge tone="ok">OK</Badge>
+                                            )}
                                         </div>
                                     </Card>
 
@@ -213,8 +316,13 @@ export default function MapSummary({
                                         <div className="text-3xl font-semibold">
                                             {ec.toFixed(2)} <span className="text-base">mS/cm</span>
                                         </div>
-                                        <div className="mt-2">{ec > 1.5 ? <Badge tone="warn">Alta</Badge> : <Badge tone="ok">OK</Badge>}</div>
-                                    </Card>
+                                        <div className="mt-2">
+                                            {targets.ecInlineHi != null && ec > targets.ecInlineHi ? (
+                                                <Badge tone="warn">Alta</Badge>
+                                            ) : (
+                                                <Badge tone="ok">OK</Badge>
+                                            )}
+                                        </div>                                    </Card>
 
                                     <Card variant="dark" className="p-4">
                                         <NetworkIcon size={25} />
@@ -231,7 +339,7 @@ export default function MapSummary({
                                 </div>
 
                                 {/* === MEDIA VWC + TREND === */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 space-y-6">
                                     <Card variant="dark" className="p-4 text-black">
                                         <div className="text-sm text-neutral-300">Umidità suolo media (VWC)</div>
                                         <div className="text-3xl font-semibold text-white">
@@ -250,7 +358,7 @@ export default function MapSummary({
                                         </div>
                                     </Card>
 
-                                    <Card variant="dark" className="p-4">
+                                    <Card variant="dark" className="p-4 lg:col-span-2">
                                         <div className="font-medium mb-2">Trend pH & EC (ultimi 10 min)</div>
                                         <div className="space-y-3">
                                             {/* Se non usi TimeSeries nel progetto, puoi rimuovere queste due righe */}
@@ -293,24 +401,24 @@ export default function MapSummary({
                                 </div>
 
                                 {/* === LISTA SONDE (dedup) === */}
-                                <div className="grid grid-cols-3 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-3 md:grid-cols-2 xl:grid-cols-3 gap-3 mb-25">
                                     {dedupList.filter((s) => !(["PH_INLINE", "EC_INLINE", "P_PRE", "P_POST"]
-                                    .includes(s.id))).map((s) => {
-                                        const last = series[s.id]?.at(-1)?.v
-                                        return (
-                                            <Card key={s.id} variant="dark" className="p-4">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="font-medium">{s.label}</div>
-                                                </div>
-                                                <div className="text-2xl mt-1 text-white">
-                                                    {typeof last === "number" ? last.toFixed(2) : "—"} <span className="text-base">{s.unit}</span>
-                                                </div>
-                                                <div className="text-xs text-neutral-400 mt-1">
-                                                    {s.sector ? `Settore ${s.sector}` : ""} {s.row ? `• Fila ${s.row}` : ""} {s.depthCm ? `• ${s.depthCm} cm` : ""}
-                                                </div>
-                                            </Card>
-                                        )
-                                    })}
+                                        .includes(s.id))).map((s) => {
+                                            const last = series[s.id]?.at(-1)?.v
+                                            return (
+                                                <Card key={s.id} variant="dark" className="p-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="font-medium">{s.label}</div>
+                                                    </div>
+                                                    <div className="text-2xl mt-1 text-white">
+                                                        {typeof last === "number" ? last.toFixed(2) : "—"} <span className="text-base">{s.unit}</span>
+                                                    </div>
+                                                    <div className="text-xs text-neutral-400 mt-1">
+                                                        {s.sector ? `Settore ${s.sector}` : ""} {s.row ? `• Fila ${s.row}` : ""} {s.depthCm ? `• ${s.depthCm} cm` : ""}
+                                                    </div>
+                                                </Card>
+                                            )
+                                        })}
                                 </div>
                             </motion.div>
                         </motion.div>

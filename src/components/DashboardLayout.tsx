@@ -6,7 +6,7 @@ type DashboardLayoutProps = {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     const baseClasses =
-        "p-6 relative flex flex-col transition-[margin-left,margin-right] duration-300 ease-in-out mt-12";
+        "relative flex flex-col transition-[margin-left,margin-right] duration-300 ease-in-out pt-18"; // mt-12
 
     return (
         <div className={`${baseClasses}`}>

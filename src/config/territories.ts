@@ -5,6 +5,7 @@ export const territories: Territory[] = [
         id: 'T1',
         name: 'Terreno Nord',
         crop: "blueberry",
+        status: "in_progress",
         areaHa: 1.2,
         layout: {
             sectors: [
@@ -44,6 +45,7 @@ export const territories: Territory[] = [
         id: 'T2',
         name: 'Terreno Sud',
         crop: "chili",
+        status: "in_progress",
         areaHa: 3.0,
         layout: {
             sectors: [

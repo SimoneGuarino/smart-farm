@@ -8,6 +8,7 @@ import { IoSettingsOutline, IoNotificationsOutline } from "react-icons/io5";
 
 import { useResponsiveSidebar } from "./sidebar/useResponsiveSidebar";
 import Card from "../ui/Card";
+import { useDarkModeStore } from "@/hooks/controller";
 
 const SidebarIcon = BsLayoutSidebar as React.FC<{ size?: number }>;
 const SettingsIcon = IoSettingsOutline as React.FC<{ size?: number }>;
@@ -15,31 +16,30 @@ const NotificationsIcon = IoNotificationsOutline as React.FC<{ size?: number }>;
 
 export default function Topbar() {
     //const { features, toggleFeature } = useUIStore();
-    const { isMobile } = useResponsiveSidebar();
-
+    const { isDarkMode } = useDarkModeStore();
     return (
         <div className="fixed top-0 z-5 flex p-2 space-x-4 w-full items-center">
-            <>
             <IconButton
-                icon={<img src={logo} alt="Logo" className={`w-full max-w-[40px] select-none`} />}
-                variant="secondary"
+                icon={<img src={logo} alt="Logo" className={`w-full max-w-[35px] select-none`} />}
+                variant={isDarkMode ? "general" : "none"}
                 dataTooltipId="general-sidenav-tooltip"
+                className="bg-white"
             />
             <Card className="flex ml-auto p-2 rounded-full gap-2">
                 <IconButton
                     icon={<NotificationsIcon size={20} />}
-                    variant="secondary"
+                    variant={isDarkMode ? "general" : "secondary"}
                     dataTooltipId="general-sidenav-tooltip"
                     dataTooltipContent="Notifiche"
                 />
                 <IconButton
                     icon={<SettingsIcon size={20} />}
-                    variant="secondary"
+                    variant={isDarkMode ? "general" : "secondary"}
                     dataTooltipId="general-sidenav-tooltip"
                     dataTooltipContent="Impostazioni"
                 />
             </Card>
-        </>
+            
             {/*<div className="flex gap-3 items-center text-sm">
                 <label className="flex items-center gap-2">
                     <input type="checkbox" checked={features.meteoStation} onChange={() => toggleFeature('meteoStation')} /> Meteo

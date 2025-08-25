@@ -5,8 +5,6 @@ import { territories } from '@/config/territories'
 
 export function buildMockSensors(): Sensor[] {
     const sensors: Sensor[] = [];
-    const T1 = territories[0].id;
-    const T2 = territories[1].id;
 
     // 4 punti rappresentativi × 2 profondità = 8 VWC
     const vwcRows = [1, 16, 30, 33];

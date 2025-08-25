@@ -9,6 +9,7 @@ import Sensors from './pages/Sensors'
 import MetricsDetail from './pages/MetricsDetail'
 import Terreno from './pages/Terreno'
 import TerreniMapGoogle3D from './pages/TerreniMapGoogle3D'
+import InitialLoader from './components/loader/InitialLoader'
 
 
 const router = createBrowserRouter([
@@ -29,6 +30,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-        <RouterProvider router={router} />
+        <InitialLoader>
+            <RouterProvider router={router} />
+        </InitialLoader>
     </React.StrictMode>
 )
