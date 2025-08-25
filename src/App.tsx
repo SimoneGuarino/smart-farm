@@ -4,7 +4,7 @@ import Topbar from '@/components/layout/Topbar'
 
 export default function App() {
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-900 flex">
+        <div className="min-h-screen min-w-screen bg-gray-50 text-gray-900 flex">
             <Sidebar />
             <div className="flex-1 flex flex-col">
                 <Topbar />

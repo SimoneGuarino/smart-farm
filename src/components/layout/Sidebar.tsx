@@ -23,7 +23,7 @@ const LinkItem = ({ to, label, icon }: { to: string; label: string; icon: React.
 
     return (
         <NavLink to={to} onClick={() => isMobile && closeSidebar()} className={({ isActive }) =>
-            `flex gap-2 py-2 ${isOpen ? 'px-8' : 'px-4' } 
+            `flex gap-2 py-2 ${isOpen ? 'px-8' : 'px-4'} 
             text-gray-800 dark:text-gray-200
             w-full transition ${isActive ? 'bg-neutral-100 text-sky-600' : 'hover:bg-slate-100'}`
         }>
@@ -79,9 +79,9 @@ export default function Sidebar() {
         >
             <SideNavHeader NavLink={NavLink} navIsFocused={navIsFocused} />
 
-            <LinkItem to="/" label="Dashboard" icon={<DashboardIcon size={25}/>} />
-            <LinkItem to="/terreni" label={"Terreni"} icon={<Campo3DIcon size={25}/>} />
-            <LinkItem to="/sonde" label={"Sonde"} icon={<AnalyticsIcon size={25}/>} />
+            <LinkItem to="/" label="Dashboard" icon={<DashboardIcon size={25} />} />
+            <LinkItem to="/terreni" label={"Terreni"} icon={<Campo3DIcon size={25} />} />
+            <LinkItem to="/sonde" label={"Sonde"} icon={<AnalyticsIcon size={25} />} />
         </SidebarContainer>
 
         <Tooltip
