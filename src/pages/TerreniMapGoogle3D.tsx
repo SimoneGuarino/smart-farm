@@ -161,11 +161,11 @@ export default function TerreniMapGoogle3D() {
                                 key={t.id}
                                 paths={t.paths} // attenzione: "paths", non "path"
                                 options={{
-                                    strokeColor: "#22c55e",
+                                    strokeColor: "#fbff00ff",
                                     strokeOpacity: 0.9,
-                                    strokeWeight: 2,
-                                    fillColor: "#22c55e",
-                                    fillOpacity: 0.15,
+                                    strokeWeight: 3,
+                                    fillColor: "#fbff00ff",
+                                    fillOpacity: 0.2,
                                 }}
                                 onClick={() => { setSelectedId(t.id); handleOpenSummary(); }}
                             />
