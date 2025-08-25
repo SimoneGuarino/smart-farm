@@ -9,6 +9,7 @@ import Sensors from './pages/Sensors'
 import MetricsDetail from './pages/MetricsDetail'
 import Terreno from './pages/Terreno'
 import TerreniMap from './pages/TerreniMap'
+import TerreniMapGoogle3D from './pages/TerreniMapGoogle3D'
 
 
 const router = createBrowserRouter([
@@ -17,6 +18,7 @@ const router = createBrowserRouter([
         element: <App />,
         children: [
             { index: true, element: <Dashboard /> },
+            { path: 'terreni_google', element: <TerreniMapGoogle3D /> },
             { path: 'terreni', element: <TerreniMap /> },
             { path: 'terreni/:tid', element: <Terreno /> },         // dashboard specifico terreno
             { path: 'terreni/:tid/3d', element: <Field3D /> },      // 3D del terreno selezionato
